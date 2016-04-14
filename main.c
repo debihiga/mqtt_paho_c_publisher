@@ -6,7 +6,7 @@
  * and Eclipse Distribution License v1.0 which accompany this distribution.
  *
  * The Eclipse Public License is available at
- *   http://www.eclipse.org/legal/epl-v10.html
+ *    http://www.eclipse.org/legal/epl-v10.html
  * and the Eclipse Distribution License is available at
  *   http://www.eclipse.org/org/documents/edl-v10.php.
  *
@@ -20,7 +20,7 @@
 #include "MQTTClient.h"
 
 #define ADDRESS     "192.168.0.121:1883"
-#define CLIENTID    "ExampleClientSub"
+#define CLIENTID    "ExampleClientPub"
 #define TOPIC       "MQTTExamples"
 #define PAYLOAD     "Hello World!"
 #define QOS         1
@@ -64,8 +64,9 @@ int main(int argc, char* argv[])
 {
 	 MQTTClient client;
 	 MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+	 MQTTClient_message pubmsg = MQTTClient_message_initializer;
+	 MQTTClient_deliveryToken token;
 	 int rc;
-	 int ch;
 
 	 MQTTClient_create(&client, ADDRESS, CLIENTID,
 		  MQTTCLIENT_PERSISTENCE_NONE, NULL);
@@ -79,16 +80,18 @@ int main(int argc, char* argv[])
 		  printf("Failed to connect, return code %d\n", rc);
 		  exit(-1);
 	 }
-	 printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
-			  "Press Q<Enter> to quit\n\n", TOPIC, CLIENTID, QOS);
-	 MQTTClient_subscribe(client, TOPIC, QOS);
-
-	 do
-	 {
-		  ch = getchar();
-	 } while(ch!='Q' && ch != 'q');
-
+	 pubmsg.payload = PAYLOAD;
+	 pubmsg.payloadlen = strlen(PAYLOAD);
+	 pubmsg.qos = QOS;
+	 pubmsg.retained = 0;
+	 deliveredtoken = 0;
+	 MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
+	 printf("Waiting for publication of %s\n"
+				"on topic %s for client with ClientID: %s\n",
+				PAYLOAD, TOPIC, CLIENTID);
+	 while(deliveredtoken != token);
 	 MQTTClient_disconnect(client, 10000);
 	 MQTTClient_destroy(&client);
 	 return rc;
 }
+
